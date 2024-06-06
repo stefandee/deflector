@@ -31,7 +31,6 @@ Music:
 
 ## Media
 
-SDL2 version:
 ![Deflector Gameplay](.media/deflector_game_play.gif "Deflector Game Play")
 ![Deflector Main Menu](.media/deflector_main_menu.gif "Deflector Main Menu")
 
@@ -64,9 +63,9 @@ This may only be built using Turbo Pascal/Borland Pascal. It's provided for hist
 
 
 ## Cheats
-Open settings.json and locate the section "cheats"/"flow".
+Open settings.json and locate the sections "cheats" and "flow".
 
-Note that some cheats only work in debug build.
+Note that some cheats may work only in the debug build.
 
 These are:
 * "spacewarp": starting level
