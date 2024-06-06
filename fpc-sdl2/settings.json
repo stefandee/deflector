@@ -1,0 +1,21 @@
+{
+  "graphics" : {
+    "resolution" : {
+      "fullScreen" : false,
+      "width" : 640,
+      "height" : 400
+    }
+  },
+  "sfx" : {
+    "volume" : 25
+  },
+  "music" : {
+    "volume" : 25
+  },
+  "cheats" : {
+    "spacewarp" : 1
+  },
+  "flow" : {
+    "skipintro" : true
+  }
+}
