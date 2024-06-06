@@ -15,7 +15,8 @@ uses
 	SysUtils,
 	SDL2_ttf,
 	ColorDef,
-	MathEx;
+	MathEx,
+	Settings;
 
 const
 	HCENTER = $01;
@@ -314,6 +315,10 @@ var
 	timestamp: longint;
 	logicalW, logicalH: longint;
 begin
+	{$IFOPT D+}
+	if GameSettings.NoFadeOut then exit;
+	{$ENDIF}	
+
 	if duration <= 0 then exit;
 
 	if renderer = nil then renderer := SDLRenderer;

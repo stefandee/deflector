@@ -33,6 +33,7 @@ Music:
 
 ![Deflector Gameplay](.media/deflector_game_play.gif "Deflector Game Play")
 ![Deflector Main Menu](.media/deflector_main_menu.gif "Deflector Main Menu")
+![Deflector Meltdown](.media/deflector_meltdown.gif "Deflector Meltdown")
 
 
 ## Setup&Install&Build (FPC SDL2)
@@ -43,7 +44,7 @@ Run build_deflector.bat to build and run the game.
 
 Ingame editor is available if you build the debug version.
 
-SDL 2 DLLs are provided. Feel free to use your own or build them from sources.
+SDL 2 DLLs have been included. Feel free to use your own or build them from sources.
 
 
 ## Setup&Install&Build (FPC DOS)
@@ -61,6 +62,39 @@ This version lacks music and the editor has not been tested yet.
 
 This may only be built using Turbo Pascal/Borland Pascal. It's provided for historical purposes only.
 
+## Gameplay
+Use arrow keys or D-Pad to move the cursor.
+
+Use O/P or gamepad shoulder buttons to rotate the laser beam.
+
+Use Return/gamepad A for action (rotate mirrors)
+
+Use Escape or gamepad back to return to menu.
+
+Complete the level by clearing all the balls.
+
+In debug mode, the following keyboard shortcuts are available:
+* Q to complete the game
+* W to complete the level
+* E to fail the level/game (and play the awesome "Doom melt"-like animation)
+
+## Editor
+
+The editor is pretty raw, but it offers all the functionalities to create working levels.
+
+A level has to be encased in walls, otherwise bad things will happen.
+
+It's mostly designed for keyboard, but gamepad navigation also works. The following keyboard shortcuts are available:
+* page up/down to change selection
+* Return to replace selection
+* Home to place the laser generator
+* Delete to delete a tile
+* End to toggle mirror type (rotating or non rotating)
+* +/- to change the level to edit (up to MAX_LEVELS, which is 100)
+* S to save the level to file (will be saved data/gamedata/levels.dat)
+* C to clear the level with the template (borders + laser generator). There is no confirmation or undo, so use with caution.
+
+Make sure to backup/branch/stash before editing ;)
 
 ## Cheats
 Open settings.json and locate the sections "cheats" and "flow".
@@ -70,10 +104,10 @@ Note that some cheats may work only in the debug build.
 These are:
 * "spacewarp": starting level
 * "skipintro": skip the game intro
+* "nofadeout": skip fadeouts
 
 
 ## TODO
-* complete the integration of the editor for the SDL2 version
 * ingame laser line optimization - don't draw each pixel but draw line between collisions
 * more audio sfx
 * per menu option color
@@ -83,6 +117,5 @@ These are:
 * add lives support 
 * add support to finish the level by connecting to the end point like in the original
 * add support for fixed laser (to extend the mechanics range)
-* fast/instant fade out in the settings to improve development flow
 * create more levels
 * fullscreen support

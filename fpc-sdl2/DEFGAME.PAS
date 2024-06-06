@@ -58,12 +58,11 @@ type
            crt_move : byte;
 		   
 		   { used for animation }
-		   timestamp: longword;
+		   timestamp: longword;		   
            end;
 
      Diskgamearr = array[1..15,1..32] of DiskField;
      gamearr = array[1..15,1..32] of field;
-
 
 const
 	OBJID_EMPTY = 0;
@@ -75,8 +74,8 @@ const
 	OBJID_HEAVY_MINE = 11;
 	OBJID_LASER_GENERATOR = 6;
 	OBJID_COLLECTABLE = 7; { the balls }
-	OBJID_WALL1 = 8;
-	OBJID_WALL2 = 9;
+	OBJID_WALL = 9;
+	OBJID_CORNER = 8;
 	
 	AUTO_MIRROR_ROTATION_PERIOD = 50; { mili-seconds }
 	MINE_HEAT_PERIOD = 50; { mili-seconds }
@@ -101,6 +100,10 @@ var
 	gameDataLoaded: boolean;
 	event: TSDL_Event;
 	levels: array[1..MAX_LEVELS] of Diskgamearr;
+	LevelCountInternal: longint;
+
+procedure ClearDiskLevel(var diskLevel: Diskgamearr); forward;
+procedure InitTemplateDiskLevel(var diskLevel: Diskgamearr); forward;
 
 procedure LoadLevel(whatlevel : word);
 begin
@@ -120,6 +123,11 @@ var
 	controllerDX, controllerDY: longint;
 	controllerNavigationTimestamp: longword;
 	gameMode: TGameMode;
+	
+	cf, editorLevel: integer;
+	txt: string;
+	rot: boolean;
+	editorSelection: field;
 
 { initializes the level from the disk level; also finds the laser start point and initializes the timestamps }
 procedure Find_lgx_lgy;
@@ -421,13 +429,9 @@ SDL_DestroyTexture(texture);
 
 end;
 
-
-procedure Animate;
-var i,j : integer;
+procedure AnimateField(var f: field; x, y: integer);
 begin
-for i:=0 to 14 do
-    for j:=0 to 31 do
-        with cr_lev[i+1,j+1] do
+        with f do
         case id of
         2 : begin
 			if (SDL_GetTicks - timestamp >= AUTO_MIRROR_ROTATION_PERIOD) then
@@ -436,42 +440,50 @@ for i:=0 to 14 do
 				inc(crt_move);
 				if crt_move>8 then crt_move:=1;
 			end;
-			putspr(crt_move,j*dx,i*dy,SDL_BLENDMODE_NONE,nil);
+			putspr(crt_move,x,y,SDL_BLENDMODE_NONE,nil);
             end;
         3 : begin
-            putspr(crt_move,j*dx,i*dy,SDL_BLENDMODE_NONE,nil);
+            putspr(crt_move,x,y,SDL_BLENDMODE_NONE,nil);
             end;
         5 : begin
             inc(crt_move);
             if crt_move>4 then crt_move:=1;
-            putspr(12+crt_move,j*dx,i*dy,SDL_BLENDMODE_NONE,nil);
+            putspr(12+crt_move,x,y,SDL_BLENDMODE_NONE,nil);
             end;
         11 : begin
              inc(crt_move);
              if crt_move>5 then crt_move:=1;
-             putspr(34+crt_move,j*dx,i*dy,SDL_BLENDMODE_NONE,nil);
+             putspr(34+crt_move,x,y,SDL_BLENDMODE_NONE,nil);
              end;
 
         6 : begin
-            putspr(32,j*dx,i*dy,SDL_BLENDMODE_NONE,nil);
+            putspr(32,x,y,SDL_BLENDMODE_NONE,nil);
             end;
         7 : begin
-            putspr(17,j*dx,i*dy,SDL_BLENDMODE_NONE,nil);
+            putspr(17,x,y,SDL_BLENDMODE_NONE,nil);
             inc(balls_left);
             end;
         8 : begin
-            putspr(crt_move+27,j*dx,i*dy,SDL_BLENDMODE_NONE,nil);
+            putspr(crt_move+27,x,y,SDL_BLENDMODE_NONE,nil);
             end;
         9 : begin
-            putspr(crt_move+8,j*dx,i*dy,SDL_BLENDMODE_NONE,nil);
+            putspr(crt_move+8,x,y,SDL_BLENDMODE_NONE,nil);
             end;
         1 : begin
             inc(crt_move);
             if crt_move>10 then id:=0
-                           else putspr(17+crt_move,j*dx,i*dy,SDL_BLENDMODE_NONE,nil);
+                           else putspr(17+crt_move,x,y,SDL_BLENDMODE_NONE,nil);
             end;
-       10 : putspr(33,j*dx,i*dy,SDL_BLENDMODE_NONE,nil);
+       10 : putspr(33,x,y,SDL_BLENDMODE_NONE,nil);
        end;
+end;
+
+procedure Animate;
+var i,j : integer;
+begin
+for i:=0 to 14 do
+    for j:=0 to 31 do
+		AnimateField(cr_lev[i+1,j+1], j*dx, i*dy);
 end;
 
 procedure TurnLaserCW;
@@ -503,6 +515,70 @@ begin
 		end;
 end;
 
+procedure EditAction(var target: field);
+begin
+	with target do
+		case cf of
+		1..8 : begin
+			if rot then begin id:=2;crt_move:=cf; end
+				   else begin id:=3;crt_move:=cf; end;
+			txt:='mirror';
+			end;
+		9    : begin id:=0;txt:='none'; end;
+		10   : begin id:=5;crt_move:=1; txt:='mine';end;
+		12   : begin id:=7;crt_move:=1; txt:='ball';end;
+		13..16 : begin id:=8;crt_move:=cf-12;txt:='corner';end;
+		17..20 : begin id:=9;crt_move:=cf-16;txt:='wall';end;
+		21   : begin id:=11;crt_move:=1;txt:='heavy mine';end;
+		end;
+end;
+
+procedure SaveLevel;
+var
+	diskLevel: Diskgamearr;
+	i, j: integer;
+	f: file of Diskgamearr;
+begin
+	{ convert to disk level }
+	for i:=1 to 15 do 
+		for j:=1 to 32 do 
+		begin
+			diskLevel[i, j].id := cr_lev[i, j].id;
+			diskLevel[i, j].crt_move := cr_lev[i, j].crt_move;
+			
+			if diskLevel[i, j].id <> 0 then
+				Log.LogStatus(Format('id: %d, move: %d', [diskLevel[i, j].id, diskLevel[i, j].crt_move]), 'SaveLevel');
+		end;
+
+	{ keep the internal level list updated, so we don't load again }
+	levels[editorLevel] := diskLevel;
+
+  try
+	assign(f, GameDataPath('levels.dat'));
+	reset(f);
+
+	seek(f, editorLevel - 1);
+	write(f, levels[editorLevel]);
+	
+	close(f);	
+	
+  except
+    // If there was an error the reason can be found here
+    on E: EInOutError do
+      Log.LogStatus(Format('File handling error occurred. Details: %s %s', [E.ClassName, E.Message]), 'SaveLevel');
+  end;
+end;
+
+function ChangeEditorLevel(newEditorLevel: longint): longint;
+begin
+	newEditorLevel := Clamp(newEditorLevel, 1, MAX_LEVELS);
+	
+	disk_cr_lev := levels[newEditorLevel];
+	Find_lgx_lgy;
+	
+	ChangeEditorLevel := newEditorLevel;
+end;
+
 begin
 Find_lgx_lgy;
 teta:=1;exitcode:=TExitCode.Nothing;cx:=1;cy:=1;
@@ -517,6 +593,12 @@ controllerDX := 0;
 controllerDY := 0;
 
 gameMode := _gameMode;
+
+{ editor initialization }
+cf:=1;
+rot:=false;
+editorLevel := level;
+EditAction(editorSelection);
 
 repeat
 cls(COLOR_BLACK,nil);
@@ -549,7 +631,8 @@ begin
 					NavigateCursor(1, 0);
 				
 				SDLK_RETURN: 
-					Action;
+					if gameMode = TGameMode.Play then Action
+					else EditAction(cr_lev[cy,cx]);
 					
 				{$IFOPT D+}
 				SDLK_Q:
@@ -560,6 +643,43 @@ begin
 					
 				SDLK_E:
 					exitcode := TExitCode.LevelFailed;
+					
+				SDLK_PAGEUP : begin
+					 if cf<21 then inc(cf)
+					 else cf := 1;
+					 
+					 EditAction(editorSelection);
+					 end;
+					 
+				SDLK_PAGEDOWN: begin
+					 if cf>1 then dec(cf)
+					 else cf := 21;
+					 
+					 EditAction(editorSelection);
+					 end;
+					 
+				SDLK_HOME: begin cr_lev[lgy,lgx].id:=0;lgx:=cx;lgy:=cy;cr_lev[lgy,lgx].id:=6;end;
+				
+				SDLK_END : rot:=not rot;
+				
+				SDLK_DELETE : cr_lev[cy,cx].id:=0;
+				
+				SDLK_S:
+					SaveLevel;
+					
+				SDLK_C:
+				begin
+					ClearDiskLevel(disk_cr_lev);
+					InitTemplateDiskLevel(disk_cr_lev);
+					Find_lgx_lgy;
+				end;
+					
+				SDLK_PLUS, SDLK_KP_PLUS:
+					editorLevel := ChangeEditorLevel(editorLevel + 1);
+					
+				SDLK_MINUS, SDLK_KP_MINUS:
+					editorLevel := ChangeEditorLevel(editorLevel - 1);
+					
 				{$ENDIF}
 			end;
 		end;
@@ -682,7 +802,7 @@ case gameMode of
 		outintxy(LOGICAL_SCREEN_WIDTH div 6,187,Trunc(temperature),FontGameUI, COLOR_WHITE, HCENTER,nil);
 
 		outtextxy(LOGICAL_SCREEN_WIDTH div 2, 175, 'Level', FontGameUI, COLOR_WHITE, HCENTER, nil);
-		outintxy(LOGICAL_SCREEN_WIDTH div 2,187, level + 1,FontGameUI, COLOR_WHITE, HCENTER,nil);
+		outintxy(LOGICAL_SCREEN_WIDTH div 2,187, level,FontGameUI, COLOR_WHITE, HCENTER,nil);
 
 		outtextxy(5 * LOGICAL_SCREEN_WIDTH div 6, 175, 'Score', FontGameUI, COLOR_WHITE, HCENTER, nil);
 		outintxy(5 * LOGICAL_SCREEN_WIDTH div 6,187,score,FontGameUI, COLOR_WHITE, HCENTER,nil);
@@ -695,6 +815,19 @@ case gameMode of
 		
 		{ draw the cursor }
 		putspr(SPRID_GAME_CURSOR,(cx-1)*dx,(cy-1)*dy,SDL_BLENDMODE_BLEND,nil);
+
+		putspr(SPRID_INGAME_LOGO, 0, 147, SDL_BLENDMODE_BLEND, nil);
+
+		{ editor related hud }
+		outtextxy(LOGICAL_SCREEN_WIDTH div 6, 175, txt, FontGameUI, COLOR_WHITE, HCENTER, nil);
+		AnimateField(editorSelection, LOGICAL_SCREEN_WIDTH div 6 - 5, 187);
+		
+		outtextxy(LOGICAL_SCREEN_WIDTH div 2, 175, 'Level', FontGameUI, COLOR_WHITE, HCENTER, nil);
+		outintxy(LOGICAL_SCREEN_WIDTH div 2,187, editorLevel, FontGameUI, COLOR_WHITE, HCENTER,nil);
+		
+		outtextxy(5 * LOGICAL_SCREEN_WIDTH div 6, 175, 'Rotate', FontGameUI, COLOR_WHITE, HCENTER, nil);		
+		if rot then outtextxy(5 * LOGICAL_SCREEN_WIDTH div 6,187, 'On',FontGameUI, COLOR_WHITE, HCENTER,nil)
+		else outtextxy(5 * LOGICAL_SCREEN_WIDTH div 6,187, 'Off',FontGameUI, COLOR_WHITE, HCENTER,nil);
 	end;
 end;	
 
@@ -704,12 +837,72 @@ until exitcode <> TExitCode.Nothing;
 if exitcode=TExitCode.LevelFailed then meltdown;
 end;
 
+procedure ClearDiskLevel(var diskLevel: Diskgamearr);
+var
+	i, j: integer;
+begin
+	for i:=1 to 15 do 
+		for j:=1 to 32 do 
+		begin
+			diskLevel[i, j]. id := OBJID_EMPTY;
+			diskLevel[i,j].crt_move := 0;
+		end;
+end;
+
+{ initializes a level with a template - basically the margins and corners }
+procedure InitTemplateDiskLevel(var diskLevel: Diskgamearr);
+var
+	i, j: integer;
+begin
+		{13..16 : begin id:=8;crt_move:=cf-12;txt:='corner';end;
+		17..20 : begin id:=9;crt_move:=cf-16;txt:='wall';end;}
+		
+	for i:=1 to 15 do 
+	begin
+		diskLevel[i, 1].id := OBJID_WALL;
+		diskLevel[i, 1].crt_move := 3;
+		
+		diskLevel[i, 32].id := OBJID_WALL;
+		diskLevel[i, 32].crt_move := 1;
+	end;
+		
+	for j:=1 to 32 do 
+	begin
+		diskLevel[1, j].id := OBJID_WALL;
+		diskLevel[1, j].crt_move := 2;
+		
+		diskLevel[15, j].id := OBJID_WALL;
+		diskLevel[15, j].crt_move := 4;
+	end;
+	
+	diskLevel[1, 32].id := OBJID_CORNER;
+	diskLevel[1, 32].crt_move := 1;
+	
+	diskLevel[1, 1].id := OBJID_CORNER;
+	diskLevel[1, 1].crt_move := 2;
+	
+	diskLevel[15, 32].id := OBJID_CORNER;
+	diskLevel[15, 32].crt_move := 3;
+	
+	diskLevel[15, 1].id := OBJID_CORNER;
+	diskLevel[15, 1].crt_move := 4;
+	
+	diskLevel[7, 16].id := OBJID_LASER_GENERATOR;
+	diskLevel[7, 16].crt_move := 0;
+		
+	{for i:=1 to 15 do 
+		for j:=1 to 32 do 
+		begin
+			diskLevel[i, j]. id := OBJID_EMPTY;
+			diskLevel[i,j].crt_move := 0;
+		end;}
+end;
+
 procedure LoadGameData;
 var
 	f : file of Diskgamearr;
 	i: integer;
 	sprfname: string;
-	levelCount: longint;
 begin
 	if gameDataLoaded then exit;
 
@@ -724,17 +917,27 @@ begin
 	assign(f,GameDataPath('levels.dat'));
 	reset(f);
 	
-	levelCount := FileSize(f);
+	LevelCountInternal := FileSize(f);
 	
-	for i := 1 to levelCount do
+	Log.LogStatus(Format('Found %d levels', [LevelCountInternal]), 'LoadGameData');
+	
+	for i := 1 to LevelCountInternal do
 		read(f, levels[i]);
 		
 	close(f);
+	
+	{ initialize with empty levels everything that is past what we found on disk }
+	if LevelCountInternal + 1 < MAX_LEVELS then
+		for i := LevelCountInternal + 1 to MAX_LEVELS do
+		begin
+			ClearDiskLevel(levels[i]);
+			InitTemplateDiskLevel(levels[i]);
+		end;
 end;
 
 function LevelCount: longint;
 begin
-	LevelCount := length(levels);
+	LevelCount := LevelCountInternal;
 end;
 
 begin

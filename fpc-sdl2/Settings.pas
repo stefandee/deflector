@@ -27,6 +27,7 @@ type
 	
 	TGameSettings = record
 		SkipIntro: boolean;
+		NoFadeOut: boolean;
 		
 		graphics: TGraphicsSettings;
 		sfx: TSfxSettings;
@@ -57,6 +58,7 @@ begin
 	with GameSettings do
 	begin
 		SkipIntro := false;
+		NoFadeOut := false;
 		
 		with graphics do
 		begin
@@ -96,6 +98,7 @@ begin
 	with GameSettings do
 	begin
 		SkipIntro := c.GetValue('/flow/skipintro', false);
+		NoFadeOut := c.GetValue('/flow/nofadeout', false);
 	
 		with graphics do
 		begin
@@ -138,6 +141,7 @@ begin
 	with GameSettings do
 	begin	
 		c.SetValue('/flow/skipintro', SkipIntro);
+		c.SetValue('/flow/nofadeout', NoFadeOut);
 	
 		with graphics do
 		begin
