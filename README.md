@@ -35,6 +35,18 @@ Music:
 ![Deflector Main Menu](.media/deflector_main_menu.gif "Deflector Main Menu")
 ![Deflector Meltdown](.media/deflector_meltdown.gif "Deflector Meltdown")
 
+## Setup (General)
+
+This project uses submodules and they need to be initialized. 
+
+After cloning the project, run:
+
+```
+git submodule init
+git submodule update
+```
+
+Alternatively, pass --recurse-submodules to git clone (or tick the box in your clone popup if you have a visual git client).
 
 ## Setup&Install&Build (FPC SDL2)
 
