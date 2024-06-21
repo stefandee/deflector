@@ -82,6 +82,9 @@ const
 	HEAVY_MINE_HEAT_PERIOD = 50; { mili-seconds }
 	COOL_DOWN_PERIOD = 50; { mili-seconds }
 	
+	MINE_WARNING_PERIOD = 500; { mili-seconds }
+	HEAVY_MINE_WARNING_PERIOD = 300; { mili-seconds }
+	
 	COOL_DOWN_DELTA = 0.25;
 	MINE_HEAT_DELTA = 0.5;
 	HEAVY_MINE_HEAT_DELTA = 0.75;
@@ -101,6 +104,7 @@ var
 	event: TSDL_Event;
 	levels: array[1..MAX_LEVELS] of Diskgamearr;
 	LevelCountInternal: longint;
+	mineWarningTimestamp: longint;
 
 procedure ClearDiskLevel(var diskLevel: Diskgamearr); forward;
 procedure InitTemplateDiskLevel(var diskLevel: Diskgamearr); forward;
@@ -226,6 +230,15 @@ begin
 	Return_dirV := r;
 end;
 
+procedure MineWarning(period: longint);
+begin
+	if SDL_GetTicks - mineWarningTimestamp >= period then
+	begin
+		mineWarningTimestamp := SDL_GetTicks;
+		PlayAudioOneShot(SFX_GAME_TEMP_INCREASE_LOW);
+	end;
+end;
+
 procedure Draw_Rays;
 
 type ray = record
@@ -309,6 +322,7 @@ with r[crt_ray] do
                               id:=1;
                               crt_move:=0;
                               score:=score+5*crt_ray;
+							  PlayAudioOneShot(SFX_GAME_BUBBLE_POP);
                               end;
 							  
               5: if not IsSprPixelTransparent(17,expr3,expr4)
@@ -317,6 +331,8 @@ with r[crt_ray] do
 						 begin
 							cr_lev[expr2+1,expr1+1].timestamp := SDL_GetTicks;
 							temperature := temperature + MINE_HEAT_DELTA;
+
+							MineWarning(MINE_WARNING_PERIOD);
 						 end;
 						 
                          goto ends;
@@ -327,6 +343,8 @@ with r[crt_ray] do
 						 begin
 							cr_lev[expr2+1,expr1+1].timestamp := SDL_GetTicks;
 							temperature := temperature + HEAVY_MINE_HEAT_DELTA;
+							
+							MineWarning(HEAVY_MINE_WARNING_PERIOD);
 						 end;
 						 
                          goto ends;
@@ -389,6 +407,8 @@ begin
     end;
 	
 	deltaTime := 0.16667;
+
+	PlayAudioOneShot(SFX_MELTDOWN);
 
 	for i:=1 to 50 do
     begin
@@ -512,6 +532,7 @@ begin
 		begin
 			inc(crt_move);
 			if crt_move>8 then crt_move:=1;
+			PlayAudioOneShot(SFX_GAME_ROTATE_MIRROR);
 		end;
 end;
 
@@ -585,6 +606,7 @@ teta:=1;exitcode:=TExitCode.Nothing;cx:=1;cy:=1;
 
 temperature := MIN_TEMPERATURE;
 coolDownTimestamp := SDL_GetTicks;
+mineWarningTimestamp := SDL_GetTicks;
 
 commandTurnLaserCW := false;
 commandTurnLaserCCW := false;
@@ -782,6 +804,9 @@ case gameMode of
 		begin
 			coolDownTimestamp := SDL_GetTicks;
 			temperature := Max(temperature - COOL_DOWN_DELTA, MIN_TEMPERATURE);	
+			
+			{if temperature = MIN_TEMPERATURE then
+				PlayAudioOneShot(SFX_GAME_TEMP_NORMAL);}
 		end;
 
 		if temperature > MAX_TEMPERATURE then exitcode:=TExitCode.LevelFailed; {meltdown}
@@ -933,6 +958,13 @@ begin
 			ClearDiskLevel(levels[i]);
 			InitTemplateDiskLevel(levels[i]);
 		end;
+		
+	{ load sfx }
+	LoadSound(SFX_MELTDOWN_FILE_NAME, SFX_MELTDOWN);
+	LoadSound(SFX_GAME_ROTATE_MIRROR_FILE_NAME, SFX_GAME_ROTATE_MIRROR);
+	LoadSound(SFX_GAME_BUBBLE_POP_FILE_NAME, SFX_GAME_BUBBLE_POP);
+	LoadSound(SFX_GAME_TEMP_NORMAL_FILE_NAME, SFX_GAME_TEMP_NORMAL);
+	LoadSound(SFX_GAME_TEMP_INCREASE_LOW_FILE_NAME, SFX_GAME_TEMP_INCREASE_LOW);
 end;
 
 function LevelCount: longint;

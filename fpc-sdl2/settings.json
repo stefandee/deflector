@@ -7,15 +7,16 @@
     }
   },
   "sfx" : {
-    "volume" : 25
+    "volume" : 100
   },
   "music" : {
-    "volume" : 25
+    "volume" : 100
   },
   "cheats" : {
     "spacewarp" : 1
   },
   "flow" : {
-    "skipintro" : true
+    "skipintro" : false,
+    "nofadeout" : false
   }
 }

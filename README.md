@@ -91,7 +91,7 @@ It's mostly designed for keyboard, but gamepad navigation also works. The follow
 * Delete to delete a tile
 * End to toggle mirror type (rotating or non rotating)
 * +/- to change the level to edit (up to MAX_LEVELS, which is 100)
-* S to save the level to file (will be saved data/gamedata/levels.dat)
+* S to save the level to file (will be saved to data/gamedata/levels.dat)
 * C to clear the level with the template (borders + laser generator). There is no confirmation or undo, so use with caution.
 
 Make sure to backup/branch/stash before editing ;)
@@ -108,14 +108,16 @@ These are:
 
 
 ## TODO
-* ingame laser line optimization - don't draw each pixel but draw line between collisions
-* more audio sfx
+* free form mirror rotations (instead of 45 degrees increments)
+* rotate mirror in both directions 
+* switch to json levels file instead of binary
 * per menu option color
 * return to the previous menu option 
-* rotate mirror in both directions 
-* free form mirror rotations (instead of 45 degrees increments)
-* add lives support 
+* implement ghosts (travel randomly and re-arrange static mirrors)
+* implement wormhole
 * add support to finish the level by connecting to the end point like in the original
 * add support for fixed laser (to extend the mechanics range)
+* ingame laser line optimization - don't draw each pixel but draw line between collisions
+* add lives support 
 * create more levels
 * fullscreen support

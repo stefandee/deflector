@@ -304,6 +304,8 @@ begin
         keyNavTimeStamp := SDL_GetTicks;
         dec(option); 
         if option<1 then option:=menus[whatmenu].maxoption;
+		
+		PlayAudioOneShot(SFX_MENU_NAVIGATE);
     end;
 end;
 
@@ -314,6 +316,8 @@ begin
         keyNavTimeStamp := SDL_GetTicks;
         inc(option); 
         if option>menus[whatmenu].maxoption then option:=1;
+		
+		PlayAudioOneShot(SFX_MENU_NAVIGATE);
     end;
 end;
 
@@ -348,6 +352,8 @@ begin
     { Back in main menu -> exit the game - this is for convenience of testing the game, maybe it won't make sense in a release }
     if whatmenu = main then 
 	begin
+		PlayAudioOneShot(SFX_EXIT_GAME);
+	
 		requestGameExit := true;
 		exit;
 	end;
@@ -356,6 +362,8 @@ begin
     begin 
         whatmenu:=menus[whatmenu].escape;
         option:=1;
+		
+		PlayAudioOneShot(SFX_MENU_SELECT);
     end;
 end;
 
@@ -365,25 +373,31 @@ procedure GameCompleted; forward;
 procedure NavigationSelect;
 begin
     case menus[whatmenu].select[option] of
-    quit: 
+    quit:
+	begin
 		requestGameExit := true;
+		PlayAudioOneShot(SFX_EXIT_GAME);
+	end;
 
     what, options, ckeys, ccontroller: 
     begin
         whatmenu:=menus[whatmenu].select[option];
         option:=1;
+		PlayAudioOneShot(SFX_MENU_SELECT);
     end;
 
     sfxvolume:
     begin
         whatmenu:=menus[whatmenu].select[option];
         option:=1; { TODO get closest volume in table depending on settings }
+		PlayAudioOneShot(SFX_MENU_SELECT);
     end;
 
     musicvolume: 
     begin
         whatmenu:=menus[whatmenu].select[option];
         option:=1;
+		PlayAudioOneShot(SFX_MENU_SELECT);
     end;
 
     setsfxvolume: 
@@ -395,6 +409,7 @@ begin
         SaveSettings;
         whatmenu:=options;
         option:=1;
+		PlayAudioOneShot(SFX_MENU_SELECT);
     end;
             
     setmusicvolume:
@@ -406,6 +421,7 @@ begin
         SaveSettings;
         whatmenu:=options;
         option:=1;
+		PlayAudioOneShot(SFX_MENU_SELECT);
     end;
 	
     ostart:
@@ -413,7 +429,7 @@ begin
 		
     editor:
 		StartGameOrEditor(TGameMode.Edit);
-	end;
+	end;	
 end;
 
 procedure GameCompleted;
@@ -432,7 +448,9 @@ end;
 procedure StartGameOrEditor(_gameMode: TGameMode = TGameMode.Play);
 begin
 	LoadGameData;
-	 
+	
+	PlayAudioOneShot(SFX_START_GAME);
+	
 	Fadeout(500);
 	 
 	cls(COLOR_BLACK, nil);
@@ -444,14 +462,14 @@ begin
 	{$ENDIF}
 	
 	score:=0;
-	 
+		 
 	repeat
 	 
 	str(level+1, slevel);
 	slevel:='Industrial level '+slevel;
 	outtextxy(LOGICAL_SCREEN_HALF_WIDTH,100,slevel, FontMenu, COLOR_WHITE, HCENTER, nil);
 	Flip;
-	 
+
 	WaitForAnyKeyDown;
 	 
 	fadeout(500);
@@ -464,16 +482,32 @@ begin
 	 
 	fadeout(500);
 	cls(COLOR_BLACK, nil);
-	 
+	
+	if exitCode = TExitCode.LevelComplete then
+		PlayAudioOneShot(SFX_LEVEL_COMPLETE);
+	
 	until exitcode <> TExitCode.LevelComplete;
-	 
-	{ TODO check exitcode for last level/game finished and switch 'game completed' state }
 	 
 	if exitcode = TExitCode.GameComplete then
 		GameCompleted;
 	
 	option:=1;
 	whatmenu := main;		 
+end;
+
+procedure LoadSfxAndMusic;
+begin
+	{ load sfx }
+	LoadSound(SFX_MENU_SELECT_FILE_NAME, SFX_MENU_SELECT);
+	LoadSound(SFX_MENU_NAVIGATE_FILE_NAME, SFX_MENU_NAVIGATE);
+	LoadSound(SFX_EXIT_GAME_FILE_NAME, SFX_EXIT_GAME);
+	LoadSound(SFX_LEVEL_COMPLETE_FILE_NAME, SFX_LEVEL_COMPLETE);
+	LoadSound(SFX_START_GAME_FILE_NAME, SFX_START_GAME);
+
+	{ load and play music }
+	mixMusic := MIX_LoadMUS(PChar(MusicPath(MOD_FILE_NAME)));
+	Mix_VolumeMusic(GameSettings.music.volume);
+	MIX_PlayMusic(mixMusic, MaxInt);
 end;
 
 begin
@@ -503,7 +537,9 @@ begin
 
 	loadspr(SPR_FILE_NAME_MENU_BKG, SPRID_MENU_BKG, nil);
 	loadspr(SPR_FILE_NAME_MENU_SPOTLIGHT, SPRID_MENU_SPOTLIGHT, nil);
-
+	
+	LoadSfxAndMusic();
+	
 	cx := LOGICAL_SCREEN_HALF_WIDTH - 20 + random(40);
 	cy := LOGICAL_SCREEN_HALF_HEIGHT - 20 + random(40);
 	stepx := 1 + random(2);
@@ -515,10 +551,6 @@ begin
 	initmenus;
 	
 	randomize;
-
-	mixMusic := MIX_LoadMUS(PChar(MusicPath(MOD_FILE_NAME)));
-	Mix_VolumeMusic(GameSettings.music.volume);
-	MIX_PlayMusic(mixMusic, MaxInt);
 
 	keyNavTimeStamp := SDL_GetTicks;
 	

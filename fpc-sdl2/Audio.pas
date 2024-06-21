@@ -15,7 +15,7 @@ const
 	AUDIO_FORMAT = AUDIO_S16SYS;
 	AUDIO_CHANNELS = 2;
 	
-	SOUNDS_COUNT = 32;
+	SOUNDS_COUNT = 64;
   
 type
   TSoundList = array[0..SOUNDS_COUNT] of PMix_Chunk;
