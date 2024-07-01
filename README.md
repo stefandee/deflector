@@ -52,12 +52,16 @@ Alternatively, pass --recurse-submodules to git clone (or tick the box in your c
 
 Install Free Pascal Compiler (version 3.2.2+)
 
-Run build_deflector.bat to build and run the game. 
+Run build_deflector.bat to build and run the game. Ingame editor is available if you build the debug version.
 
-Ingame editor is available if you build the debug version.
+SDL2 DLLs are required to run the build:
+* SDL2_image.dll
+* SDL2_mixer.dll
+* SDL2_ttf.dll
+* libxmp.dll 
+* SDL2.dll
 
-SDL 2 DLLs have been included. Feel free to use your own or build them from sources.
-
+You may find them in the release packages or feel free to use your own.
 
 ## Setup&Install&Build (FPC DOS)
 
